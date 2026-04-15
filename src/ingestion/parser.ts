@@ -2,7 +2,7 @@ import SwaggerParser from "@apidevtools/swagger-parser";
 import type { ParsedAPI, Endpoint, Field } from "../types/index.js";
 
 export async function parseOpenAPI(filePath: string): Promise<ParsedAPI> {
-  const api: any = await SwaggerParser.parse(filePath);
+  const api: any = await SwaggerParser.dereference(filePath);
 
   const baseUrl =
     api.servers?.[0]?.url ||
@@ -21,7 +21,7 @@ export async function parseOpenAPI(filePath: string): Promise<ParsedAPI> {
 
       const fields: Field[] = [];
 
-      // 🔹 Parameters (query, path, header)
+      // Parameters (query, path, header)
       if (op.parameters) {
         for (const param of op.parameters) {
           fields.push({
@@ -33,7 +33,7 @@ export async function parseOpenAPI(filePath: string): Promise<ParsedAPI> {
         }
       }
 
-      // 🔹 Request Body (OpenAPI 3)
+      // Request Body (OpenAPI 3)
       if (op.requestBody?.content) {
         const content = op.requestBody.content["application/json"];
         const schema = content?.schema;
