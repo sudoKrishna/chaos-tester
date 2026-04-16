@@ -1,8 +1,10 @@
 import { parseOpenAPI } from "./ingestion/parser.js";
 import { generateMutations } from "./mutations/engine.js";
 import type { Mutation } from "./mutations/mutation.types.js";
+import { runMutation } from "./runner/http.runner.js";
 
-const specPath = process.argv[3];
+const specIndex = process.argv.indexOf("--spec");
+const specPath = specIndex !== -1 ? process.argv[specIndex + 1] : null;
 
 function summarizeMutations(mutations: Mutation[]) {
   const summary = {
@@ -41,6 +43,16 @@ async function main() {
     console.log(`  - ${summary.boundary} boundary`);
     console.log(`  - ${summary.injection} injection`);
     console.log(`  - ${summary.missing} missing\n`);
+
+     for (const m of mutations.slice(0, 2)) {
+    const result = await runMutation(api.baseUrl, ep, m);
+
+    console.log(`→ ${m.description}`);
+    console.log(`Status: ${result.response.statusCode}`);
+    console.log(`Time: ${result.response.responseTimeMs}ms`);
+    console.log(result.curlCommand);
+    console.log("\n");
+  }
   }
 }
 
