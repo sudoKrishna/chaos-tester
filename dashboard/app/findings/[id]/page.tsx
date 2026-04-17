@@ -47,22 +47,22 @@ export default function FindingDetail() {
     <div className="p-6 space-y-4">
       <h1 className="text-xl font-bold">{finding.title}</h1>
 
-      <Card className="p-4">
+      <Card className="p-4 text-black">
         <h2 className="font-semibold">Description</h2>
         <p>{finding.description}</p>
       </Card>
 
-      <Card className="p-4">
+      <Card className="p-4 text-black">
         <h2 className="font-semibold">Curl</h2>
         <pre className="overflow-x-auto text-xs">{finding.curlCommand}</pre>
       </Card>
 
-      <Card className="p-4">
+      <Card className="p-4 text-black">
         <h2 className="font-semibold">Request</h2>
         <pre className="text-xs">{JSON.stringify(finding.request, null, 2)}</pre>
       </Card>
 
-      <Card className="p-4">
+      <Card className="p-4 text-black">
         <h2 className="font-semibold">Response</h2>
         <pre className="text-xs">{JSON.stringify(finding.response, null, 2)}</pre>
       </Card>

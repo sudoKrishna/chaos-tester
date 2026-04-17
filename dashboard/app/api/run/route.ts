@@ -1,7 +1,7 @@
 import { parseOpenAPI } from "@/app/lib/parser";
 import { runFullScan } from "@/app/lib/engine";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
