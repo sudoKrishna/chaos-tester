@@ -18,7 +18,7 @@ export function generateArrayMutations(field: Field): Mutation[] {
         {
             fieldName: field.name,
             originalType: field.type,
-            attackValue: new Array(100000).fill("a"),
+            attackValue: new Array(1000).fill("a"),
             attackCategory: "boundary",
             description: "Very large array",
         },

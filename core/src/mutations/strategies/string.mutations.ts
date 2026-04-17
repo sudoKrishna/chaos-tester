@@ -26,7 +26,7 @@ export function generateStringMutations(field: Field & { required?: boolean }): 
         {
             fieldName: field.name,
             originalType: field.type,
-            attackValue: "a".repeat(100000),
+            attackValue: "a".repeat(1000),
             attackCategory: "boundary",
             description: `Sending extremely large string for ${field.name}`
         },

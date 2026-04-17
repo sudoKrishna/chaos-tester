@@ -55,14 +55,23 @@ if (endpoint.method === "GET") {
   const query = new URLSearchParams();
 
   for (const [key, value] of Object.entries(body)) {
-    if (value !== undefined && value !== null) {
+    if (value === undefined || value === null) continue ;
+    
+    if (typeof value === "object") {
+      const json = JSON.stringify(value);
+
+      if (json.length > 1000) continue;
+
+      query.append(key, json); 
+    } else {
       query.append(key, String(value));
     }
   }
 
-  finalUrl += finalUrl.includes("?")
-  ? `&${query.toString()}`
-  : `?${query.toString()}`;
+  const qs = query.toString();
+  if (qs.length > 0) {
+    finalUrl = `${url}${url.includes("?") ? "&" : "?"}${qs}`;
+  }
 } else {
   requestOptions.body = JSON.stringify(body);
 }

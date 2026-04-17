@@ -1,13 +1,14 @@
 import SwaggerParser from "@apidevtools/swagger-parser";
 import type { ParsedAPI, Endpoint, Field } from "../types/index.js";
 
-export async function parseOpenAPI(filePath: string): Promise<ParsedAPI> {
+export async function parseOpenAPI(filePath: string, overrideUrl?: string): Promise<ParsedAPI> {
   const api: any = await SwaggerParser.dereference(filePath);
 
-  const baseUrl =
-    api.servers?.[0]?.url ||
-    api.host ||
-    "http://localhost";
+const baseUrl =
+  overrideUrl ||              
+  api.servers?.[0]?.url ||
+  api.host ||
+  "http://localhost";
 
   const endpoints: Endpoint[] = [];
 

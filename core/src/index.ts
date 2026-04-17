@@ -2,6 +2,9 @@ import { parseOpenAPI } from "./ingestion/parser.js";
 import { generateMutations } from "./mutations/engine.js";
 import type { Mutation } from "./mutations/mutation.types.js";
 import { runMutation } from "./runner/http.runner.js";
+import { classifyResult } from "./analysis/classifier.js";
+import type { Finding } from "./analysis/classifier.js";
+import { writeFileSync } from "fs";
 
 const specIndex = process.argv.indexOf("--spec");
 const specPath = specIndex !== -1 ? process.argv[specIndex + 1] : null;
@@ -22,6 +25,8 @@ function summarizeMutations(mutations: Mutation[]) {
 }
 
 async function main() {
+  const findings: Finding[] = [];
+
   if (!specPath) {
     console.error("Please provide --spec <file>");
     process.exit(1);
@@ -44,16 +49,28 @@ async function main() {
     console.log(`  - ${summary.injection} injection`);
     console.log(`  - ${summary.missing} missing\n`);
 
-     for (const m of mutations.slice(0, 2)) {
-    const result = await runMutation(api.baseUrl, ep, m);
+    for (const m of mutations.slice(0, 2)) {
+      const result = await runMutation(api.baseUrl, ep, m);
 
-    console.log(`→ ${m.description}`);
-    console.log(`Status: ${result.response.statusCode}`);
-    console.log(`Time: ${result.response.responseTimeMs}ms`);
-    console.log(result.curlCommand);
-    console.log("\n");
+      const finding = classifyResult(result);
+
+      if (finding) {
+        findings.push(finding);
+      }
+
+      console.log(`→ ${m.description}`);
+      console.log(`Status: ${result.response.statusCode}`);
+      console.log(`Time: ${result.response.responseTimeMs}ms`);
+      console.log(result.curlCommand);
+      console.log("\n");
+    }
   }
-  }
+
+  console.log(`Total findings: ${findings.length}`);
+
+  
+  return findings;
+  
 }
 
 main();
