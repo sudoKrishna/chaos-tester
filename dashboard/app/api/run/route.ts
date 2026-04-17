@@ -1,7 +1,7 @@
 import { parseOpenAPI } from "@/app/lib/parser";
 import { runFullScan } from "@/app/lib/engine";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+
 
 export async function POST(req: Request) {
   try {
@@ -37,13 +37,13 @@ export async function POST(req: Request) {
         baseUrl: resolvedBaseUrl,
         totalEndpoints: report.totalEndpoints,
         totalFindings: report.totalFindings,
-        findings: report.findings as Prisma.InputJsonValue
+        findings: JSON.parse(JSON.stringify(report.findings))
       },
       update: {
         baseUrl: resolvedBaseUrl,
         totalEndpoints: report.totalEndpoints,
         totalFindings: report.totalFindings,
-        findings: report.findings as Prisma.InputJsonValue
+        findings: JSON.parse(JSON.stringify(report.findings))
       },
     });
 
