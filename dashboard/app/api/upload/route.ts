@@ -1,28 +1,23 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const id = randomUUID();
-  const uploadDir = path.join(process.cwd(), "uploads");
-  const filePath = path.join(uploadDir, `${id}.yaml`);
-
-  await mkdir(uploadDir, { recursive: true });
-
   const contentType = req.headers.get("content-type") || "";
-  let buffer: Buffer;
+  let content: string;
+  let filename: string | undefined;
 
   if (contentType.includes("application/json")) {
-    const { content } = await req.json();
+    const body = await req.json();
 
-    if (!content || typeof content !== "string") {
+    if (!body.content || typeof body.content !== "string") {
       return Response.json(
         { error: "Please provide pasted YAML or JSON content." },
         { status: 400 }
       );
     }
 
-    buffer = Buffer.from(content, "utf-8");
+    content = body.content;
   } else {
     const formData = await req.formData();
     const file = formData.get("file");
@@ -34,10 +29,17 @@ export async function POST(req: Request) {
       );
     }
 
-    buffer = Buffer.from(await file.arrayBuffer());
+    filename = file.name;
+    content = Buffer.from(await file.arrayBuffer()).toString("utf-8");
   }
 
-  await writeFile(filePath, buffer);
+  await prisma.uploadedSpec.create({
+    data: {
+      id,
+      filename,
+      content,
+    },
+  });
 
   return Response.json({ fileId: id });
 }

@@ -1,5 +1,4 @@
-import path from "path";
-import fs from "fs/promises";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -9,12 +8,15 @@ export async function GET(req: Request) {
     return Response.json({ error: "Missing report id." }, { status: 400 });
   }
 
-  const filePath = path.join(process.cwd(), "report-store", `${id}.json`);
+  const report = await prisma.report.findUnique({
+    where: { id },
+  });
 
-  try {
-    const data = await fs.readFile(filePath, "utf-8");
-    return Response.json(JSON.parse(data));
-  } catch {
+  if (!report) {
     return Response.json({ error: "Report not found." }, { status: 404 });
   }
+
+  const { baseUrl, totalEndpoints, totalFindings, findings } = report;
+
+  return Response.json({ baseUrl, totalEndpoints, totalFindings, findings });
 }

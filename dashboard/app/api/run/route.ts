@@ -1,8 +1,7 @@
-import path from "path";
-import fs from "fs/promises";
-import { mkdir } from "fs/promises";
 import { parseOpenAPI } from "@/app/lib/parser";
 import { runFullScan } from "@/app/lib/engine";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -12,8 +11,15 @@ export async function POST(req: Request) {
       return Response.json({ error: "Missing file id." }, { status: 400 });
     }
 
-    const filePath = path.join(process.cwd(), "uploads", `${fileId}.yaml`);
-    const parsed = await parseOpenAPI(filePath, baseUrl);
+    const uploadedSpec = await prisma.uploadedSpec.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!uploadedSpec) {
+      return Response.json({ error: "Spec not found." }, { status: 404 });
+    }
+
+    const parsed = await parseOpenAPI(uploadedSpec.content, baseUrl);
     const resolvedBaseUrl = baseUrl || parsed.baseUrl;
     const scanResult = await runFullScan(parsed, resolvedBaseUrl);
     const report = {
@@ -22,11 +28,24 @@ export async function POST(req: Request) {
     };
 
     const reportId = fileId;
-    const reportDir = path.join(process.cwd(), "report-store");
-    const outPath = path.join(reportDir, `${reportId}.json`);
 
-    await mkdir(reportDir, { recursive: true });
-    await fs.writeFile(outPath, JSON.stringify(report, null, 2));
+    await prisma.report.upsert({
+      where: { id: reportId },
+      create: {
+        id: reportId,
+        specId: fileId,
+        baseUrl: resolvedBaseUrl,
+        totalEndpoints: report.totalEndpoints,
+        totalFindings: report.totalFindings,
+        findings: report.findings as Prisma.InputJsonValue
+      },
+      update: {
+        baseUrl: resolvedBaseUrl,
+        totalEndpoints: report.totalEndpoints,
+        totalFindings: report.totalFindings,
+        findings: report.findings as Prisma.InputJsonValue
+      },
+    });
 
     return Response.json({ reportId });
   } catch (error) {

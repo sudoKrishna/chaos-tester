@@ -1,5 +1,6 @@
 import SwaggerParser from "@apidevtools/swagger-parser";
 import type { Endpoint, Field, ParsedAPI } from "@/types";
+import yaml from "js-yaml";
 
 type OpenAPIParameter = {
   name: string;
@@ -40,13 +41,12 @@ type OpenAPIDocument = {
   paths?: Record<string, Record<string, OpenAPIOperation>>;
 };
 
-export async function parseOpenAPI(
-  filePath: string,
-  overrideUrl?: string
-): Promise<ParsedAPI> {
-  const api = (await SwaggerParser.dereference(
-    filePath
-  )) as OpenAPIDocument;
+export async function parseOpenAPI(specSource: string, overrideUrl?: string) {
+  const doc = typeof specSource === "string"
+    ? yaml.load(specSource)
+    : specSource;
+
+  const api = (await SwaggerParser.dereference(doc as any)) as OpenAPIDocument;
 
   const baseUrl =
     overrideUrl ||
