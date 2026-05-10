@@ -1,0 +1,21 @@
+{
+  "name": "chaos-tester",
+  "version": "1.0.0",
+  "description": "> Automatically fuzz your API with malformed inputs and surface validation failures.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sudoKrishna/chaos-tester.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sudoKrishna/chaos-tester/issues"
+  },
+  "homepage": "https://github.com/sudoKrishna/chaos-tester#readme"
+}
