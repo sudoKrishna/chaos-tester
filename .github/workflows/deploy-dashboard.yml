@@ -1,0 +1,22 @@
+name: Deploy Dashboard
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "dashboard/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: npm install -g vercel
+
+      - run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
