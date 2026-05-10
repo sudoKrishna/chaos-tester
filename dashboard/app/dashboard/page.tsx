@@ -1,6 +1,8 @@
-import dynamic from "next/dynamic";
+export const dynamic = "force-dynamic";
 
-const HomeContent = dynamic(() => import("../HomeContent"), {
+import dynamicImport from "next/dynamic";
+
+const HomeContent = dynamicImport(() => import("../HomeContent"), {
   ssr: false,
 });
 

@@ -25,7 +25,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ SAFE: replace useSearchParams with browser-only logic
+  
   useEffect(() => {
     if (typeof window === "undefined") return;
 
