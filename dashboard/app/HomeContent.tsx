@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { Finding, ScanReport } from "../types";
 import { Card } from "@/components/ui/card";
@@ -16,31 +15,33 @@ import {
 } from "recharts";
 
 export default function Home() {
-  const searchParams = useSearchParams();
   const [specText, setSpecText] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [reportId, setReportId] = useState(searchParams.get("reportId") || "");
+
+  const [reportId, setReportId] = useState("");
   const [report, setReport] = useState<ScanReport | null>(null);
+
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ✅ SAFE: replace useSearchParams with browser-only logic
   useEffect(() => {
-    const currentReportId = searchParams.get("reportId");
+    if (typeof window === "undefined") return;
 
-    if (!currentReportId) {
-      return;
-    }
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("reportId") || "";
 
-    setReportId(currentReportId);
+    if (!id) return;
 
-    fetch(`/api/report?id=${currentReportId}`)
+    setReportId(id);
+
+    fetch(`/api/report?id=${id}`)
       .then(async (res) => {
         if (!res.ok) {
           const payload = await res.json();
           throw new Error(payload.error || "Unable to load report.");
         }
-
         return res.json();
       })
       .then((data: ScanReport) => {
@@ -51,7 +52,7 @@ export default function Home() {
       .catch((err: Error) => {
         setError(err.message);
       });
-  }, [searchParams]);
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,9 +65,7 @@ export default function Home() {
       if (specText.trim()) {
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: specText }),
         });
 
@@ -99,13 +98,8 @@ export default function Home() {
 
       const runResponse = await fetch("/api/run", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileId,
-          baseUrl,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId, baseUrl }),
       });
 
       const runPayload = await runResponse.json();
@@ -115,7 +109,10 @@ export default function Home() {
       }
 
       const nextReportId = runPayload.reportId;
+
       setReportId(nextReportId);
+
+      // ✅ safe URL update (no SSR issues)
       window.history.replaceState({}, "", `/?reportId=${nextReportId}`);
 
       const reportResponse = await fetch(`/api/report?id=${nextReportId}`);
@@ -135,6 +132,7 @@ export default function Home() {
   }
 
   const data: Finding[] = report?.findings || [];
+
   const counts = {
     critical: 0,
     high: 0,
@@ -142,158 +140,96 @@ export default function Home() {
     info: 0,
   };
 
-  data.forEach((finding) => counts[finding.severity]++);
+  data.forEach((finding) => {
+    counts[finding.severity]++;
+  });
 
   const chartData = Object.entries(counts).map(([name, value]) => ({
     name,
     value,
   }));
+
   const hasReport = Boolean(report);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fef3c7,transparent_30%),linear-gradient(180deg,#fffdf8_0%,#fff7ed_100%)] px-4 py-8 text-slate-900">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
+
         <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-700">
             Chaos Tester
           </p>
-          <h1 className="text-4xl font-bold">Paste a spec. Run a scan. See the report here.</h1>
-          <p className="max-w-3xl text-sm text-slate-600">
-            Upload or paste your OpenAPI YAML/JSON, add the API base URL, and the scan result will render in the web app without editing files in code.
-          </p>
+          <h1 className="text-4xl font-bold">
+            Paste a spec. Run a scan. See the report here.
+          </h1>
         </div>
 
+        {/* FORM */}
         <Card className="border-amber-200/80 bg-white/90 p-6">
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-700">API base URL</span>
-                <input
-                  className="w-full rounded-xl border border-amber-200 bg-white px-4 py-3 outline-none transition focus:border-amber-400"
-                  placeholder="https://api.example.com"
-                  value={baseUrl}
-                  onChange={(event) => setBaseUrl(event.target.value)}
-                />
-              </label>
+            <input
+              placeholder="API base URL"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              className="w-full border p-3 rounded"
+            />
 
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-700">Upload YAML/JSON file</span>
-                <input
-                  className="block w-full rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-sm"
-                  type="file"
-                  accept=".yaml,.yml,.json,application/json"
-                  onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
-                />
-              </label>
-            </div>
+            <textarea
+              value={specText}
+              onChange={(e) => setSpecText(e.target.value)}
+              className="w-full h-48 border p-3 rounded"
+              placeholder="Paste YAML/JSON"
+            />
 
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Or paste YAML/JSON</span>
-              <textarea
-                className="min-h-72 w-full rounded-2xl border border-amber-200 bg-slate-950 px-4 py-3 font-mono text-sm text-amber-100 outline-none transition focus:border-amber-400"
-                placeholder={"openapi: 3.0.0\ninfo:\n  title: Demo API\n  version: 1.0.0"}
-                value={specText}
-                onChange={(event) => setSpecText(event.target.value)}
-              />
-            </label>
+            <button
+              disabled={isSubmitting}
+              className="bg-amber-500 text-white px-4 py-2 rounded"
+            >
+              {isSubmitting ? "Running..." : "Run scan"}
+            </button>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                className="rounded-full bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-amber-300"
-                disabled={isSubmitting}
-                type="submit"
-              >
-                {isSubmitting ? "Running scan..." : "Run scan"}
-              </button>
-
-              {reportId ? (
-                <Link
-                  className="text-sm font-medium text-amber-700 underline-offset-4 hover:underline"
-                  href={`/findings?reportId=${reportId}`}
-                >
-                  Open full findings
-                </Link>
-              ) : null}
-            </div>
-
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error && <p className="text-red-500">{error}</p>}
           </form>
         </Card>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        {/* STATS */}
+        <div className="grid grid-cols-4 gap-4">
           {Object.entries(counts).map(([key, val]) => (
-            <Card key={key} className="border-amber-100 p-4">
-              <div className="text-sm text-slate-500">{key}</div>
-              <div className="text-2xl font-bold">{val}</div>
+            <Card key={key} className="p-4">
+              <div>{key}</div>
+              <div className="text-xl font-bold">{val}</div>
             </Card>
           ))}
         </div>
 
-        <Card className="border-amber-100 p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Severity overview</h2>
-            <span className="text-sm text-slate-500">
-              {report
-                ? `${report.totalFindings} findings across ${report.totalEndpoints} endpoints`
-                : "No report yet"}
-            </span>
-          </div>
-
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        {/* CHART */}
+        <Card className="p-4 h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#f59e0b" />
+            </BarChart>
+          </ResponsiveContainer>
         </Card>
 
-        <Card className="border-amber-100 p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Latest findings</h2>
-            {reportId ? (
-              <Link
-                className="text-sm font-medium text-amber-700 underline-offset-4 hover:underline"
-                href={`/findings?reportId=${reportId}`}
-              >
-                View all
-              </Link>
-            ) : null}
-          </div>
+        {/* FINDINGS */}
+        <Card className="p-4">
+          <h2 className="font-bold mb-2">Latest findings</h2>
 
-          <div className="space-y-3">
-            {!hasReport ? (
-              <p className="text-sm text-slate-500">
-                Run a scan and the results will appear here.
-              </p>
-            ) : null}
+          {!hasReport && (
+            <p className="text-gray-500">No report yet</p>
+          )}
 
-            {hasReport && data.length === 0 ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                Scan completed successfully. No findings were generated for the
-                current target.
-              </div>
-            ) : null}
-
-            {data.slice(0, 10).map((finding, index) => (
-              <Link
-                key={`${finding.endpoint}-${index}`}
-                href={`/findings/${index}?reportId=${reportId}`}
-              >
-                <Card className="flex items-center justify-between border-amber-100 p-3 transition hover:border-amber-300 hover:shadow-md">
-                  <div>
-                    <div className="font-medium">{finding.endpoint}</div>
-                    <div className="text-sm text-slate-500">{finding.title}</div>
-                  </div>
-                  <Badge variant={finding.severity}>{finding.severity}</Badge>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {data.slice(0, 10).map((f, i) => (
+            <div key={i} className="border-b py-2">
+              <div className="font-medium">{f.endpoint}</div>
+              <div className="text-sm text-gray-500">{f.title}</div>
+            </div>
+          ))}
         </Card>
+
       </div>
     </div>
   );
