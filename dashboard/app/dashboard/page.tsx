@@ -1,11 +1,5 @@
-export const dynamic = "force-dynamic";
+import Home from "../HomeContent";
 
-import dynamicImport from "next/dynamic";
-
-const HomeContent = dynamicImport(() => import("../HomeContent"), {
-  ssr: false,
-});
-
-export default function Page() {
-  return <HomeContent />;
+export default function DashboardPage() {
+  return <Home />;
 }
